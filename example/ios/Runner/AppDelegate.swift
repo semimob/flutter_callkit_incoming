@@ -72,7 +72,11 @@ import flutter_callkit_incoming
         data.extra = ["user": "abc@123", "platform": "ios"]
         //data.iconName = ...
         //data.....
-        SwiftFlutterCallkitIncomingPlugin.sharedInstance?.showCallkitIncoming(data, fromPushKit: true)
+        SwiftFlutterCallkitIncomingPlugin.sharedInstance?.showCallkitIncoming(data, fromPushKit: true) { (error) in
+          if let error = error {
+              print("❌ testIncomingCall error: \(error.localizedDescription)")
+          }
+        }
         
         //Make sure call completion()
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {

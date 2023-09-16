@@ -88,7 +88,16 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
             }
             if let getArgs = args as? [String: Any] {
                 self.data = Data(args: getArgs)
-                showCallkitIncoming(self.data!, fromPushKit: false)
+                showCallkitIncoming(self.data!, fromPushKit: false){ (error) in
+                  if let error = error {
+                     print("❌ testIncomingCall error: \(error.localizedDescription)")
+                     result(error.localizedDescription);
+                  }else{
+                     print("completed show incoming call successfully")
+                     result("OK")
+                  }
+                  return;
+                }
             }
             result("OK")
             break
@@ -188,8 +197,8 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
         }
         return nil
     }
-    
-    @objc public func showCallkitIncoming(_ data: Data, fromPushKit: Bool) {
+
+    @objc public func showCallkitIncoming(_ data: Data, fromPushKit: Bool , completion: @escaping (Error?) -> Void) {
         self.isFromPushKit = fromPushKit
         if(fromPushKit){
             self.data = data
@@ -212,7 +221,7 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
         let uuid = UUID(uuidString: data.uuid)
         
         configurAudioSession()
-        self.sharedProvider?.reportNewIncomingCall(with: uuid!, update: callUpdate) { error in
+        self.sharedProvider?.reportNewIncomingCall(with: uuid!, update: callUpdate, completion: { error in
             if(error == nil) {
                 self.configurAudioSession()
                 let call = Call(uuid: uuid!, data: data)
@@ -221,7 +230,8 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
                 self.sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_INCOMING, data.toJSON())
                 self.endCallNotExist(data)
             }
-        }
+            completion(error)
+        })
     }
     
     @objc public func startCall(_ data: Data, fromPushKit: Bool) {
