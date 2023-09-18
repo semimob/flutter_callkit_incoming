@@ -396,16 +396,18 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
     }
     
     func configurAudioSession(){
+        print("[SwiftFlutterCallkitIncomingPlugin][configureAudioSession] ======== ")
         if data?.configureAudioSession != false {
             let session = AVAudioSession.sharedInstance()
             do{
-                try session.setCategory(AVAudioSession.Category.playAndRecord, options: AVAudioSession.CategoryOptions.allowBluetooth)
+                try session.setCategory(AVAudioSession.Category.playAndRecord, options: [.allowBluetooth])
                 try session.setMode(self.getAudioSessionMode(data?.audioSessionMode))
-                try session.setActive(data?.audioSessionActive ?? true)
+                //try session.setMode(AVAudioSession.Mode.videoChat)
                 try session.setPreferredSampleRate(data?.audioSessionPreferredSampleRate ?? 44100.0)
                 try session.setPreferredIOBufferDuration(data?.audioSessionPreferredIOBufferDuration ?? 0.005)
+                try session.setActive(data?.audioSessionActive ?? true)
             }catch{
-                print("[SwiftFlutterCallkitIncomingPlugin][configureAudioSession] ==> error")
+                print("[SwiftFlutterCallkitIncomingPlugin] ==> set active error ne")
                 print(error)
             }
         }
