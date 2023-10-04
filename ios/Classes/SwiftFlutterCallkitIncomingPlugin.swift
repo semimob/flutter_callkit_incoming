@@ -89,15 +89,15 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
             if let getArgs = args as? [String: Any] {
                 self.data = Data(args: getArgs)
                 showCallkitIncoming(self.data!, fromPushKit: false){ (error) in
-                  if let error = error {
-                     print("❌ testIncomingCall error: \(error.localizedDescription)")
-                     result(error.localizedDescription);
-                  }else{
-                     print("completed show incoming call successfully")
-                     result("OK")
-                  }
-                  return;
-                }
+                 if let error = error {
+                    print("❌ testIncomingCall error: \(error.localizedDescription)")
+                    result(error.localizedDescription);
+                 }else{
+                    print("completed show incoming call successfully")
+                    result("OK")
+                 }
+                 return;
+               }
             }
             result("OK")
             break
@@ -140,6 +140,19 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
             
             self.muteCall(callId, isMuted: isMuted)
             result("OK")
+            break
+        case "isMuted":
+            guard let args = call.arguments as? [String: Any] ,
+                  let callId = args["id"] as? String else{
+                result(false)
+                return
+            }
+            guard let callUUID = UUID(uuidString: callId),
+                  let call = self.callManager.callWithUUID(uuid: callUUID) else {
+                result(false)
+                return
+            }
+            result(call.isMuted)
             break
         case "holdCall":
             guard let args = call.arguments as? [String: Any] ,
@@ -197,8 +210,8 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
         }
         return nil
     }
-
-    @objc public func showCallkitIncoming(_ data: Data, fromPushKit: Bool , completion: @escaping (Error?) -> Void) {
+    
+    @objc public func showCallkitIncoming(_ data: Data, fromPushKit: Bool, completion: @escaping (Error?) -> Void) {
         self.isFromPushKit = fromPushKit
         if(fromPushKit){
             self.data = data
@@ -221,7 +234,7 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
         let uuid = UUID(uuidString: data.uuid)
         
         configurAudioSession()
-        self.sharedProvider?.reportNewIncomingCall(with: uuid!, update: callUpdate, completion: { error in
+        self.sharedProvider?.reportNewIncomingCall(with: uuid!, update: callUpdate) { error in
             if(error == nil) {
                 self.configurAudioSession()
                 let call = Call(uuid: uuid!, data: data)
@@ -231,7 +244,7 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
                 self.endCallNotExist(data)
             }
             completion(error)
-        })
+        }
     }
     
     @objc public func startCall(_ data: Data, fromPushKit: Bool) {
@@ -396,23 +409,20 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
     }
     
     func configurAudioSession(){
-        print("[SwiftFlutterCallkitIncomingPlugin][configureAudioSession] ======== ")
         if data?.configureAudioSession != false {
             let session = AVAudioSession.sharedInstance()
             do{
-                try session.setCategory(AVAudioSession.Category.playAndRecord, options: [.allowBluetooth])
+                try session.setCategory(AVAudioSession.Category.playAndRecord, options: [.duckOthers,.allowBluetooth])
                 try session.setMode(self.getAudioSessionMode(data?.audioSessionMode))
-                //try session.setMode(AVAudioSession.Mode.videoChat)
+                try session.setActive(data?.audioSessionActive ?? true)
                 try session.setPreferredSampleRate(data?.audioSessionPreferredSampleRate ?? 44100.0)
                 try session.setPreferredIOBufferDuration(data?.audioSessionPreferredIOBufferDuration ?? 0.005)
-                try session.setActive(data?.audioSessionActive ?? true)
             }catch{
-                print("[SwiftFlutterCallkitIncomingPlugin] ==> set active error ne")
                 print(error)
             }
         }
     }
-
+    
     func getAudioSessionMode(_ audioSessionMode: String?) -> AVAudioSession.Mode {
         var mode = AVAudioSession.Mode.default
         switch audioSessionMode {
